@@ -31,11 +31,13 @@ blockType[nT][0][0] = 1; blockType[nT][1][0] = 1; blockType[nT][1][1] = 1; block
 class TileClass :
     block = int()
     hold = bool()
+    ghost = bool()
     x_position = int()
     y_position = int()
     def initTile(self, y, x, pygame) :
         self.block = 0
         self.hold = True
+        ghost = False
         self.x_position = x * 20
         self.y_position = y * 20
         self.image = pygame.image.load("block\general.png").convert()
@@ -46,6 +48,7 @@ class TileClass :
 
 def randomTile(tiles) :
     randType = random.randint(0,6)
+    #randType = 0
     x_offset = 10
     y_offset = 0
     if randType == 0 :
@@ -65,6 +68,7 @@ def randomTile(tiles) :
                 tiles[y_offset + y_index][x_offset + x_index - 2].block = blockType[randType][y_index][x_index]
                 if tiles[y_offset + y_index][x_offset + x_index - 2].block == 1 :
                     tiles[y_offset + y_index][x_offset + x_index - 2].hold = False
+    return randType
 
 def allHold(tiles, y_size, x_size) :
     for y_index in range(y_size) :
@@ -86,9 +90,12 @@ def blockCopy(tiles, copytiles, y_size, x_size) :
             tiles[y_index][x_index].hold = copytiles[y_index][x_index].hold
 
 backTiles = list()
+ghostTiles = list()
 for y_index in range(30) :
     backTiles.append(list())
-    for x_index in range(20) :
+    ghostTiles.append(list())
+    for x_index in range(50) :
+        ghostTiles[y_index].append(TileClass())
         backTiles[y_index].append(TileClass())
 
 def downTile(tiles, y_size, x_size) :
@@ -116,6 +123,17 @@ def downTile(tiles, y_size, x_size) :
         allHold(tiles, y_size, x_size)
         reSetState = True
     return reSetState
+
+def upMove(tiles, y_size, x_size) :
+    blockCopy(backTiles, tiles, y_size, x_size)
+    for y_index in range(y_size) :
+        for x_index in range(x_size) :
+            if tiles[y_index][x_index].block == 1 and tiles[y_index][x_index].hold == False :
+                tiles[y_index-1][x_index].block = tiles[y_index][x_index].block
+                tiles[y_index-1][x_index].hold = tiles[y_index][x_index].hold
+                tiles[y_index][x_index].reInit()
+    if getBlockSize(backTiles, y_size, x_size) != getBlockSize(tiles, y_size, x_size) :
+        blockCopy(tiles, backTiles, y_size, x_size)
 
 def leftMove(tiles, y_size, x_size) :
     blockCopy(backTiles, tiles, y_size, x_size)
@@ -146,4 +164,16 @@ def speedMove(tiles, y_size, x_size) :
     while True :
         if downTile(tiles, y_size, x_size) == True :
             break
+
+def ghostMove(tiles, y_size, x_size) :
+    blockCopy(ghostTiles, tiles, y_size, x_size)
+    while True :
+        if downTile(ghostTiles, y_size, x_size) == True :
+            break
+    for y_index in range(y_size) :
+        for x_index in range(x_size) :
+            if tiles[y_index][x_index].block == 2 :
+                tiles[y_index][x_index].block = 0
+            if ghostTiles[y_index][x_index].block == 1 and tiles[y_index][x_index].block == 0 :
+                tiles[y_index][x_index].block = 2
 
