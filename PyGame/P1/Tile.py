@@ -1,4 +1,7 @@
 import random
+import Information
+
+x_line, y_line = Information.GetXYSize()
 
 blockType = list()
 for types in range(7) :
@@ -45,11 +48,14 @@ class TileClass :
     def reInit(self) :
         self.block = 0
         self.hold = True
+    def setBlock(self, block_type) :
+        self.block = block_type
+        self.hold = True
 
 def randomTile(tiles) :
     randType = random.randint(0,6)
-    #randType = 0
-    x_offset = 10
+    #randType = 5
+    x_offset = 2
     y_offset = 0
     if randType == 0 :
         for y_index in range(4) :
@@ -79,7 +85,7 @@ def getBlockSize(tiles, y_size, x_size) :
     blockCount = 0
     for y_index in range(y_size) :
         for x_index in range(x_size) :
-            if tiles[y_index][x_index].block == 1 :
+            if tiles[y_index][x_index].block != 0 and tiles[y_index][x_index].block != 2 :
                 blockCount = blockCount + 1
     return blockCount
 
@@ -89,15 +95,27 @@ def blockCopy(tiles, copytiles, y_size, x_size) :
             tiles[y_index][x_index].block = copytiles[y_index][x_index].block
             tiles[y_index][x_index].hold = copytiles[y_index][x_index].hold
 
+def notNeedInit(tiles, y_size, x_size) :
+    for y_index in range(y_size) :
+        for x_index in range(x_size) :
+            if tiles[y_index][x_index].block == 1 and tiles[y_index][x_index].hold == False :
+                tiles[y_index][x_index].reInit()
+            if tiles[y_index][x_index].block == 2 :
+                tiles[y_index][x_index].reInit()
+
 backTiles = list()
 ghostTiles = list()
-for y_index in range(30) :
+for y_index in range(y_line) :
     backTiles.append(list())
     ghostTiles.append(list())
-    for x_index in range(50) :
+    for x_index in range(x_line) :
         ghostTiles[y_index].append(TileClass())
         backTiles[y_index].append(TileClass())
 
+allHoldState = False
+def getHoldState() :
+    global allHoldState
+    return allHoldState
 def downTile(tiles, y_size, x_size) :
     blockCopy(backTiles, tiles, y_size, x_size)
     allHoldState = False
@@ -115,9 +133,9 @@ def downTile(tiles, y_size, x_size) :
                 tiles[ry][rx].reInit()
             if ry == (y_size-1) and tiles[ry][rx].block == 1 and tiles[ry][rx].hold == False:
                 allHoldState = True
-    if allHoldState == True :
-        allHold(tiles, y_size, x_size)
-        reSetState = True
+    #if allHoldState == True :
+        #allHold(tiles, y_size, x_size)
+        #reSetState = True
     if getBlockSize(backTiles, y_size, x_size) != getBlockSize(tiles, y_size, x_size) :
         blockCopy(tiles, backTiles, y_size, x_size)
         allHold(tiles, y_size, x_size)
@@ -165,15 +183,79 @@ def speedMove(tiles, y_size, x_size) :
         if downTile(tiles, y_size, x_size) == True :
             break
 
-def ghostMove(tiles, y_size, x_size) :
-    blockCopy(ghostTiles, tiles, y_size, x_size)
-    while True :
-        if downTile(ghostTiles, y_size, x_size) == True :
+def downTileOffset(tiles, x_start, x_end, y_start, y_end) :
+    y_index = y_end
+    while y_index >= y_start :
+        x_index = x_start
+        while x_index <= x_end :
+            if tiles[y_index][x_index].block == 1 and tiles[y_index][x_index].hold == False :
+                tiles[y_index+1][x_index].block = tiles[y_index][x_index].block
+                tiles[y_index+1][x_index].hold = tiles[y_index][x_index].hold
+                tiles[y_index][x_index].reInit()
+            x_index += 1
+        y_index -= 1
+
+def alldownTile(tiles, y_size, x_start, x_end, y_start, y_end) :
+    y_index = y_end
+    y_offset = y_start
+    down_state = True
+    while y_index < y_size :
+        y_offset = y_start
+        while y_offset <= y_end :
+            x_index = x_start
+            while x_index <= x_end :
+                if tiles[y_offset+1][x_index].block != 0 and tiles[y_offset+1][x_index].block != 2 and tiles[y_offset][x_index].block == 1:
+                    if tiles[y_offset+1][x_index].hold == True and tiles[y_offset][x_index].hold == False:
+                        down_state = False
+                        break
+                x_index += 1
+            y_offset += 1
+        if down_state == True :
+            downTileOffset(tiles, x_start, x_end, y_start, y_end)
+            y_start += 1
+            y_end += 1
+        if down_state == False :
             break
+        y_index += 1
+
+def ghostMove(tiles, y_size, x_size) :    
+    blockCopy(ghostTiles, tiles, y_size, x_size)
+    x_start, y_start = 0, 0
+    x_end, y_end = x_size-1, y_size-1
+    start_state = True
+    end_state = True
+    for x_index in range(x_size) :
+        for y_index in range(y_size) :
+            if start_state == True :
+                if ghostTiles[y_index][x_index].block == 1 and ghostTiles[y_index][x_index].hold == False :
+                    start_state = False
+                    x_start = x_index
+            if end_state == True :
+                if ghostTiles[y_index][x_size - x_index - 1].block == 1 and ghostTiles[y_index][x_size - x_index - 1].hold == False :
+                    end_state = False
+                    x_end = x_size - x_index - 1
+        if start_state == False and end_state == False :
+            break
+    start_state = True
+    end_state = True
+    for y_index in range(y_size) :
+        x_index = x_start
+        while x_index <= x_end:
+            if start_state == True :
+                if ghostTiles[y_index][x_index].block == 1 and ghostTiles[y_index][x_index].hold == False :
+                    start_state = False
+                    y_start = y_index
+            if end_state == True :
+                if ghostTiles[y_size - y_index - 1][x_index].block == 1 and ghostTiles[y_size - y_index - 1][x_index].hold == False :
+                    end_state = False
+                    y_end = y_size - y_index - 1
+            x_index += 1
+        if start_state == False and end_state == False :
+            break
+    alldownTile(ghostTiles, y_size, x_start, x_end, y_start, y_end)
     for y_index in range(y_size) :
         for x_index in range(x_size) :
             if tiles[y_index][x_index].block == 2 :
                 tiles[y_index][x_index].block = 0
             if ghostTiles[y_index][x_index].block == 1 and tiles[y_index][x_index].block == 0 :
                 tiles[y_index][x_index].block = 2
-

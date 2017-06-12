@@ -1,4 +1,7 @@
+import Information
 import Tile
+
+x_line, y_line = Information.GetXYSize()
 
 def ChangeTile(tiles, y_index, x_index, y_change, x_change) :
     tiles[y_index][x_index].block = tiles[y_change][x_change].block
@@ -6,9 +9,9 @@ def ChangeTile(tiles, y_index, x_index, y_change, x_change) :
     tiles[y_change][x_change].reInit()
 
 backTiles = list()
-for y_index in range(30) :
+for y_index in range(y_line) :
     backTiles.append(list())
-    for x_index in range(50) :
+    for x_index in range(x_line) :
         backTiles[y_index].append(Tile.TileClass())
         
 def RotateTile(tiles, y_size, x_size, rotation_type, rotation_index) :
